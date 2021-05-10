@@ -1,0 +1,243 @@
+From 71a79481fe403d5c348ecfdc140bf06a5c8eb3db Mon Sep 17 00:00:00 2001
+From: Maurice Ma <maurice.ma@intel.com>
+Date: Mon, 10 May 2021 13:27:05 -0700
+Subject: [PATCH] Enable iPXE in UEFI Payload
+
+This patch customized UEFI payload to include iPXE application as
+the boot option. It allows PXE boot using the network stack provided
+by iPXE.
+
+Signed-off-by: Maurice Ma <maurice.ma@intel.com>
+---
+ .gitignore                                    |  2 +
+ .../PlatformBootManager.c                     |  4 +-
+ .../PlatformBootManagerLib.inf                |  1 +
+ UefiPayloadPkg/NetBoot/NetBoot.inf            | 25 +++++++
+ .../UefiPayloadEntry/X64/DxeLoadFunc.c        |  4 +-
+ UefiPayloadPkg/UefiPayloadPkg.dec             |  2 +
+ UefiPayloadPkg/UefiPayloadPkg.dsc             |  4 +-
+ UefiPayloadPkg/UefiPayloadPkg.fdf             | 70 ++++++++++---------
+ 8 files changed, 72 insertions(+), 40 deletions(-)
+ create mode 100644 UefiPayloadPkg/NetBoot/NetBoot.inf
+
+diff --git a/.gitignore b/.gitignore
+index 1dd30c1410..76664b0982 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -5,3 +5,5 @@ Build/
+ __pycache__/
+ tags/
+ .vscode/
++UefiPayloadPkg/NetBoot/X64
++0001-Enable-iPXE-in-UEFI-Payload.patch
+\ No newline at end of file
+diff --git a/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManager.c b/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManager.c
+index 7fa3a048b7..c3312ed107 100644
+--- a/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManager.c
++++ b/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManager.c
+@@ -220,9 +220,9 @@ PlatformBootManagerAfterConsole (
+   EfiBootManagerRefreshAllBootOption ();
+ 
+   //
+-  // Register UEFI Shell
++  // Register NetBoot
+   //
+-  PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
++  PlatformRegisterFvBootOption (&gUefiPayloadNetBootAppGuid, L"NetBoot (iPXE)", LOAD_OPTION_ACTIVE);
+ 
+   Print (
+     L"\n"
+diff --git a/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf b/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
+index 1f5a0bcad0..26716f18f4 100644
+--- a/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
++++ b/UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
+@@ -49,6 +49,7 @@
+ 
+ [Guids]
+   gEfiEndOfDxeEventGroupGuid
++  gUefiPayloadNetBootAppGuid
+ 
+ [Protocols]
+   gEfiGenericMemTestProtocolGuid  ## CONSUMES
+diff --git a/UefiPayloadPkg/NetBoot/NetBoot.inf b/UefiPayloadPkg/NetBoot/NetBoot.inf
+new file mode 100644
+index 0000000000..cb93e12661
+--- /dev/null
++++ b/UefiPayloadPkg/NetBoot/NetBoot.inf
+@@ -0,0 +1,25 @@
++##  @file
++#  This is the UEFI Shell application binary file.
++#
++#  Copyright (c) 2021, Intel Corporation. All rights reserved.<BR>
++#
++#  This program and the accompanying materials
++#  are licensed and made available under the terms and conditions of the BSD License
++#  which accompanies this distribution. The full text of the license may be found at
++#  http://opensource.org/licenses/bsd-license.php
++#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
++#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
++#
++#
++##
++##
++
++[Defines]
++  INF_VERSION                    = 0x00010006
++  BASE_NAME                      = NetBoot
++  FILE_GUID                      = 4CDF2DAE-B4C7-482C-B468-99C812911FF5
++  MODULE_TYPE                    = UEFI_APPLICATION
++  VERSION_STRING                 = 1.0
++
++[Binaries.X64]
++  PE32|X64/NetBoot.efi|*
+diff --git a/UefiPayloadPkg/UefiPayloadEntry/X64/DxeLoadFunc.c b/UefiPayloadPkg/UefiPayloadEntry/X64/DxeLoadFunc.c
+index 73ea30e7a2..dec87ee1ef 100644
+--- a/UefiPayloadPkg/UefiPayloadEntry/X64/DxeLoadFunc.c
++++ b/UefiPayloadPkg/UefiPayloadEntry/X64/DxeLoadFunc.c
+@@ -66,8 +66,8 @@ HandOffToDxeCore (
+   //
+   // Get the address and size of the GHCB pages
+   //
+-  GhcbBase = (VOID *) PcdGet64 (PcdGhcbBase);
+-  GhcbSize = PcdGet64 (PcdGhcbSize);
++  GhcbBase = 0;
++  GhcbSize = 0;
+ 
+   PageTables = 0;
+   if (FeaturePcdGet (PcdDxeIplBuildPageTables)) {
+diff --git a/UefiPayloadPkg/UefiPayloadPkg.dec b/UefiPayloadPkg/UefiPayloadPkg.dec
+index 99cb3311a6..51e526c2a6 100644
+--- a/UefiPayloadPkg/UefiPayloadPkg.dec
++++ b/UefiPayloadPkg/UefiPayloadPkg.dec
+@@ -33,6 +33,8 @@
+   gUefiAcpiBoardInfoGuid   = {0xad3d31b, 0xb3d8, 0x4506, {0xae, 0x71, 0x2e, 0xf1, 0x10, 0x6, 0xd9, 0xf}}
+   gUefiSerialPortInfoGuid  = { 0x6c6872fe, 0x56a9, 0x4403, { 0xbb, 0x98, 0x95, 0x8d, 0x62, 0xde, 0x87, 0xf1 } }
+   gLoaderMemoryMapInfoGuid = { 0xa1ff7424, 0x7a1a, 0x478e, { 0xa9, 0xe4, 0x92, 0xf3, 0x57, 0xd1, 0x28, 0x32 } }
++  gUefiPayloadNetBootAppGuid = { 0x4cdf2dae, 0xb4c7, 0x482c, { 0xb4, 0x68, 0x99, 0xc8, 0x12, 0x91, 0x1f, 0xf5 } }
++
+ 
+ [Ppis]
+   gEfiPayLoadHobBasePpiGuid = { 0xdbe23aa1, 0xa342, 0x4b97, {0x85, 0xb6, 0xb2, 0x26, 0xf1, 0x61, 0x73, 0x89} }
+diff --git a/UefiPayloadPkg/UefiPayloadPkg.dsc b/UefiPayloadPkg/UefiPayloadPkg.dsc
+index 23edd163e9..411b21e770 100644
+--- a/UefiPayloadPkg/UefiPayloadPkg.dsc
++++ b/UefiPayloadPkg/UefiPayloadPkg.dsc
+@@ -26,7 +26,7 @@
+   FLASH_DEFINITION                    = UefiPayloadPkg/UefiPayloadPkg.fdf
+ 
+   DEFINE SOURCE_DEBUG_ENABLE          = FALSE
+-  DEFINE PS2_KEYBOARD_ENABLE          = FALSE
++  DEFINE PS2_KEYBOARD_ENABLE          = TRUE
+ 
+   #
+   # SBL:      UEFI payload for Slim Bootloader
+@@ -341,7 +341,7 @@
+   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase64|0
+   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingBase|0
+   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase|0
+-  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|3
++  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|0
+ 
+   ## This PCD defines the video horizontal resolution.
+   #  This PCD could be set to 0 then video resolution could be at highest resolution.
+diff --git a/UefiPayloadPkg/UefiPayloadPkg.fdf b/UefiPayloadPkg/UefiPayloadPkg.fdf
+index 8fc509024b..2ffaa108d2 100644
+--- a/UefiPayloadPkg/UefiPayloadPkg.fdf
++++ b/UefiPayloadPkg/UefiPayloadPkg.fdf
+@@ -149,57 +149,59 @@ INF UefiPayloadPkg/GraphicsOutputDxe/GraphicsOutputDxe.inf
+ INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
+ INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
+ INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
+-INF MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
+-INF MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
+-INF MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
+-INF MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
+-INF MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
+-INF MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++# INF MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
++# INF MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
++# INF MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
++# INF MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
++# INF MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
++# INF MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
+ 
+ INF FatPkg/EnhancedFatDxe/Fat.inf
+ 
+ #
+ # SD/eMMC Support
+ #
+-INF MdeModulePkg/Bus/Pci/SdMmcPciHcDxe/SdMmcPciHcDxe.inf
+-INF MdeModulePkg/Bus/Sd/EmmcDxe/EmmcDxe.inf
+-INF MdeModulePkg/Bus/Sd/SdDxe/SdDxe.inf
++# INF MdeModulePkg/Bus/Pci/SdMmcPciHcDxe/SdMmcPciHcDxe.inf
++# INF MdeModulePkg/Bus/Sd/EmmcDxe/EmmcDxe.inf
++# INF MdeModulePkg/Bus/Sd/SdDxe/SdDxe.inf
+ 
+ #
+ # Usb Support
+ #
+-INF MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
+-INF MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe.inf
++# INF MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
++# INF MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe.inf
+ INF MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
+ INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
+ INF MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+ INF MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
+-
++# NetBoot
++INF  RuleOverride = BINARY USE = X64 UefiPayloadPkg/NetBoot/NetBoot.inf
++
++# #
++# # Shell
++# #
++# !if $(SHELL_TYPE) == BUILD_SHELL
++# INF ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf
++# INF ShellPkg/DynamicCommand/DpDynamicCommand/DpDynamicCommand.inf
++# INF ShellPkg/Application/Shell/Shell.inf
++# !endif
+ #
+-# Shell
++# !if $(SHELL_TYPE) == MIN_BIN
++# !if $(ARCH) == IA32
++# INF  RuleOverride = BINARY USE = IA32 ShellBinPkg/MinUefiShell/MinUefiShell.inf
++# !else
++# INF  RuleOverride = BINARY USE = X64 ShellBinPkg/MinUefiShell/MinUefiShell.inf
++# !endif
++# !endif
+ #
+-!if $(SHELL_TYPE) == BUILD_SHELL
+-INF ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf
+-INF ShellPkg/DynamicCommand/DpDynamicCommand/DpDynamicCommand.inf
+-INF ShellPkg/Application/Shell/Shell.inf
+-!endif
+-
+-!if $(SHELL_TYPE) == MIN_BIN
+-!if $(ARCH) == IA32
+-INF  RuleOverride = BINARY USE = IA32 ShellBinPkg/MinUefiShell/MinUefiShell.inf
+-!else
+-INF  RuleOverride = BINARY USE = X64 ShellBinPkg/MinUefiShell/MinUefiShell.inf
+-!endif
+-!endif
+-
+-!if $(SHELL_TYPE) == UEFI_BIN
+-!if $(ARCH) == IA32
+-INF  RuleOverride = BINARY USE = IA32 ShellBinPkg/UefiShell/UefiShell.inf
+-!else
+-INF  RuleOverride = BINARY USE = X64 ShellBinPkg/UefiShell/UefiShell.inf
+-!endif
+-!endif
++# !if $(SHELL_TYPE) == UEFI_BIN
++# !if $(ARCH) == IA32
++# INF  RuleOverride = BINARY USE = IA32 ShellBinPkg/UefiShell/UefiShell.inf
++# !else
++# INF  RuleOverride = BINARY USE = X64 ShellBinPkg/UefiShell/UefiShell.inf
++# !endif
++# !endif
+ 
+ 
+ ################################################################################
+-- 
+2.31.1.windows.1
+
