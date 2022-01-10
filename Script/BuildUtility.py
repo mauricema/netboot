@@ -31,6 +31,11 @@ build_toolchains = {
     'clang'     : '9.0.0'
 }
 
+def Fatal (msg):
+    sys.stdout.flush()
+    raise Exception (msg)
+
+
 def download_url (url, save_path):
     urllib.request.urlretrieve (url, save_path)
 
@@ -385,6 +390,7 @@ def get_openssl_path ():
         openssl = os.path.join(os.environ.get ('OPENSSL_PATH', ''), 'openssl.exe')
     else:
         # Get openssl path for Linux cases
+        import shutil
         openssl = shutil.which('openssl')
 
     return openssl

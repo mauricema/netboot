@@ -40,7 +40,7 @@ def rebuild_basetools ():
 
         if not check_files_exist (exe_list, os.path.join(edk_dir, 'BaseTools', 'Bin', 'Win32'), '.exe'):
             print ("Could not find pre-built BaseTools binaries, try to rebuild BaseTools ...")
-            ret = run_process (['BaseTools\\toolsetup.bat', 'forcerebuild'])
+            ret = run_process (['BaseTools/toolsetup.bat', 'forcerebuild'])
 
     if ret:
         print ("Build BaseTools failed, please check required build environment and utilities !")
@@ -85,7 +85,7 @@ def main():
 
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(help='command')
-    edk2_dir = os.getcwd() + r'\Edk2'
+    edk2_dir = os.getcwd() + '/Edk2'
     branch = 'edk2-stable202102'
 
 
@@ -106,7 +106,7 @@ def main():
         # download netboot image
         netboot_path = os.path.join('UefiPayloadPkg', 'NetBoot', 'X64', 'NetBoot.efi')
         if not os.path.exists(os.path.dirname(netboot_path)):
-            os.mkdir (os.path.dirname(netboot_path))
+            os.makedirs (os.path.dirname(netboot_path))
         if not os.path.exists(netboot_path):
             download_url ('https://boot.netboot.xyz/ipxe/netboot.xyz.efi', 'UefiPayloadPkg/NetBoot/X64/NetBoot.efi')
 
