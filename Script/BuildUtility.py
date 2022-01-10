@@ -31,6 +31,11 @@ build_toolchains = {
     'clang'     : '9.0.0'
 }
 
+def Fatal (msg):
+    sys.stdout.flush()
+    raise Exception (msg)
+
+
 def download_url (url, save_path):
     urllib.request.urlretrieve (url, save_path)
 
