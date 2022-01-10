@@ -106,7 +106,7 @@ def main():
         # download netboot image
         netboot_path = os.path.join('UefiPayloadPkg', 'NetBoot', 'X64', 'NetBoot.efi')
         if not os.path.exists(os.path.dirname(netboot_path)):
-            os.mkdir (os.path.dirname(netboot_path))
+            os.makedirs (os.path.dirname(netboot_path))
         if not os.path.exists(netboot_path):
             download_url ('https://boot.netboot.xyz/ipxe/netboot.xyz.efi', 'UefiPayloadPkg/NetBoot/X64/NetBoot.efi')
 
