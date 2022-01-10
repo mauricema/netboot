@@ -390,6 +390,7 @@ def get_openssl_path ():
         openssl = os.path.join(os.environ.get ('OPENSSL_PATH', ''), 'openssl.exe')
     else:
         # Get openssl path for Linux cases
+        import shutil
         openssl = shutil.which('openssl')
 
     return openssl
