@@ -40,7 +40,7 @@ def rebuild_basetools ():
 
         if not check_files_exist (exe_list, os.path.join(edk_dir, 'BaseTools', 'Bin', 'Win32'), '.exe'):
             print ("Could not find pre-built BaseTools binaries, try to rebuild BaseTools ...")
-            ret = run_process (['BaseTools/toolsetup.bat', 'forcerebuild'])
+            ret = run_process (['BaseTools\\toolsetup.bat', 'forcerebuild'])
 
     if ret:
         print ("Build BaseTools failed, please check required build environment and utilities !")
@@ -69,7 +69,7 @@ def prep_env (edk2_dir, toolchain_preferred = ''):
         os.environ['PATH'] = os.environ['PATH'] + ';' + os.path.join(edk2_dir, 'BaseTools', 'Bin', 'Win32')
         os.environ['PATH'] = os.environ['PATH'] + ';' + os.path.join(edk2_dir, 'BaseTools', 'BinWrappers', 'WindowsLike')
         os.environ['PYTHONPATH'] = os.path.join(edk2_dir, 'BaseTools', 'Source', 'Python')
-        os.environ['WINSDK_PATH_FOR_RC_EXE'] = r'C:\Program Files (x86)\Windows Kits\8.1\bin\x86'
+        os.environ['WINSDK_PATH_FOR_RC_EXE'] = r'C:\Program Files (x86)\Windows Kits\10\bin\x86'
     else:
         os.environ['PATH'] = os.environ['PATH'] + ':' + os.path.join(edk2_dir, 'BaseTools', 'BinWrappers', 'PosixLike')
     os.environ['EDK_TOOLS_PATH'] = os.path.join(edk2_dir, 'BaseTools')
@@ -85,9 +85,8 @@ def main():
 
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(help='command')
-    edk2_dir = os.getcwd() + '/Edk2'
+    edk2_dir = os.path.abspath(os.getcwd() + '/Edk2')
     branch = 'edk2-stable202102'
-
 
     def cmd_build_dsc(args):
         if not os.path.exists (edk2_dir):
