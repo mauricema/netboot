@@ -1,4 +1,4 @@
-From 71a79481fe403d5c348ecfdc140bf06a5c8eb3db Mon Sep 17 00:00:00 2001
+From ee787b1ee8dac32e8a1d2871c3897d3cb1510147 Mon Sep 17 00:00:00 2001
 From: Maurice Ma <maurice.ma@intel.com>
 Date: Mon, 10 May 2021 13:27:05 -0700
 Subject: [PATCH] Enable iPXE in UEFI Payload
@@ -14,10 +14,11 @@ Signed-off-by: Maurice Ma <maurice.ma@intel.com>
  .../PlatformBootManagerLib.inf                |  1 +
  UefiPayloadPkg/NetBoot/NetBoot.inf            | 25 +++++++
  .../UefiPayloadEntry/X64/DxeLoadFunc.c        |  4 +-
+ .../UefiPayloadEntry/X64/SecEntry.nasm        |  1 +
  UefiPayloadPkg/UefiPayloadPkg.dec             |  2 +
  UefiPayloadPkg/UefiPayloadPkg.dsc             |  4 +-
  UefiPayloadPkg/UefiPayloadPkg.fdf             | 70 ++++++++++---------
- 8 files changed, 72 insertions(+), 40 deletions(-)
+ 9 files changed, 73 insertions(+), 40 deletions(-)
  create mode 100644 UefiPayloadPkg/NetBoot/NetBoot.inf
 
 diff --git a/.gitignore b/.gitignore
@@ -105,6 +106,18 @@ index 73ea30e7a2..dec87ee1ef 100644
  
    PageTables = 0;
    if (FeaturePcdGet (PcdDxeIplBuildPageTables)) {
+diff --git a/UefiPayloadPkg/UefiPayloadEntry/X64/SecEntry.nasm b/UefiPayloadPkg/UefiPayloadEntry/X64/SecEntry.nasm
+index 974cf77771..d5308e97c1 100644
+--- a/UefiPayloadPkg/UefiPayloadEntry/X64/SecEntry.nasm
++++ b/UefiPayloadPkg/UefiPayloadEntry/X64/SecEntry.nasm
+@@ -34,6 +34,7 @@ ASM_PFX(_ModuleEntryPoint):
+   ;
+   push  rcx
+   mov   rax, 0
++  push  rax ; keep stack aligned at 16
+   push  rax ; shadow space
+   push  rax
+   push  rax
 diff --git a/UefiPayloadPkg/UefiPayloadPkg.dec b/UefiPayloadPkg/UefiPayloadPkg.dec
 index 99cb3311a6..51e526c2a6 100644
 --- a/UefiPayloadPkg/UefiPayloadPkg.dec
@@ -239,5 +252,5 @@ index 8fc509024b..2ffaa108d2 100644
  
  ################################################################################
 -- 
-2.31.1.windows.1
+2.30.2.windows.1
 
